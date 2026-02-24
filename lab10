@@ -1,0 +1,109 @@
+from collections import deque
+
+TH_ROADS = {
+  "Bangkok": {
+    "Ayutthaya": 80, "NakhonPathom": 60, "Chonburi": 85,
+    "Kanchanaburi": 130, "HuaHin": 200, "Saraburi": 110
+  },
+  "Ayutthaya": {"Bangkok": 80, "Saraburi": 75, "Phitsanulok": 330},
+  "NakhonPathom": {"Bangkok": 60, "Kanchanaburi": 95},
+  "Kanchanaburi": {"NakhonPathom": 95, "Bangkok": 130},
+  "Chonburi": {"Bangkok": 85, "Pattaya": 50, "Rayong": 80},
+  "Pattaya": {"Chonburi": 50, "Rayong": 65},
+  "Rayong": {"Pattaya": 65, "Chonburi": 80},
+  "HuaHin": {"Bangkok": 200},
+  "Saraburi": {"Bangkok": 110, "Ayutthaya": 75, "NakhonRatchasima": 170},
+  "NakhonRatchasima": {"Saraburi": 170, "KhonKaen": 200},
+  "KhonKaen": {"NakhonRatchasima": 200, "UdonThani": 110},
+  "UdonThani": {"KhonKaen": 110},
+  "Phitsanulok": {"Ayutthaya": 330, "ChiangMai": 370},
+  "ChiangMai": {"Phitsanulok": 370},
+}
+
+# 🔹 เพิ่ม mapping ไทย → อังกฤษ
+THAI_TO_ENG = {
+    "กรุงเทพมหานคร": "Bangkok",
+    "พระนครศรีอยุธยา": "Ayutthaya",
+    "นครปฐม": "NakhonPathom",
+    "กาญจนบุรี": "Kanchanaburi",
+    "ชลบุรี": "Chonburi",
+    "พัทยา": "Pattaya",
+    "ระยอง": "Rayong",
+    "หัวหิน": "HuaHin",
+    "สระบุรี": "Saraburi",
+    "นครราชสีมา": "NakhonRatchasima",
+    "ขอนแก่น": "KhonKaen",
+    "อุดรธานี": "UdonThani",
+    "พิษณุโลก": "Phitsanulok",
+    "เชียงใหม่": "ChiangMai"
+}
+
+
+def ค้นหาแบบสองทิศทาง(graph, start, goal):
+
+    # แปลงชื่อไทยเป็นอังกฤษ
+    start = THAI_TO_ENG.get(start, start)
+    goal = THAI_TO_ENG.get(goal, goal)
+
+    if start not in graph or goal not in graph:
+        print("❌ ไม่พบชื่อเมืองในระบบ")
+        return None
+
+    if start == goal:
+        return [start]
+
+    frontier_start = deque([[start]])
+    frontier_goal = deque([[goal]])
+
+    visited_start = {start: [start]}
+    visited_goal = {goal: [goal]}
+
+    while frontier_start and frontier_goal:
+
+        # ขยายจากฝั่งต้นทาง
+        path_start = frontier_start.popleft()
+        node_start = path_start[-1]
+
+        for neighbor in graph.get(node_start, {}):
+            if neighbor not in visited_start:
+                new_path = path_start + [neighbor]
+                visited_start[neighbor] = new_path
+                frontier_start.append(new_path)
+
+                if neighbor in visited_goal:
+                    return new_path + visited_goal[neighbor][-2::-1]
+
+        # ขยายจากฝั่งปลายทาง
+        path_goal = frontier_goal.popleft()
+        node_goal = path_goal[-1]
+
+        for neighbor in graph.get(node_goal, {}):
+            if neighbor not in visited_goal:
+                new_path = path_goal + [neighbor]
+                visited_goal[neighbor] = new_path
+                frontier_goal.append(new_path)
+
+                if neighbor in visited_start:
+                    return visited_start[neighbor] + new_path[-2::-1]
+
+    return None
+
+
+# ----------------- ทดสอบ -----------------
+เมืองเริ่มต้น = "สระบุรี"
+เมืองปลายทาง = "เชียงใหม่"
+
+ผลลัพธ์ = ค้นหาแบบสองทิศทาง(TH_ROADS, เมืองเริ่มต้น, เมืองปลายทาง)
+
+if ผลลัพธ์:
+    print("=== ผลการค้นหาแบบสองทิศทาง (BIBF) ===")
+    print("เส้นทาง:", " → ".join(ผลลัพธ์))
+    print("จำนวนก้าว:", len(ผลลัพธ์) - 1)
+
+    ระยะทางรวม = 0
+    for i in range(len(ผลลัพธ์) - 1):
+        ระยะทางรวม += TH_ROADS[ผลลัพธ์[i]][ผลลัพธ์[i+1]]
+
+    print("ระยะทางรวม:", ระยะทางรวม, "กิโลเมตร")
+else:
+    print("ไม่พบเส้นทาง")
