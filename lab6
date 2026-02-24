@@ -1,8 +1,6 @@
-import heapq
+from collections import deque
 
-# ----------------------------
-# Graph Data
-# ----------------------------
+# 1. กำหนดข้อมูลกราฟที่โจทย์ให้มา
 TH_ROADS = {
   "Bangkok": {
     "Ayutthaya": 80, "NakhonPathom": 60, "Chonburi": 85,
@@ -23,46 +21,66 @@ TH_ROADS = {
   "ChiangMai": {"Phitsanulok": 370},
 }
 
-# ----------------------------
-# Uniform Cost Search
-# ----------------------------
-def uniform_cost_search(graph, start, goal):
-    # priority queue: (cost, state, path)
-    frontier = [(0, start, [])]
-    visited_cost = {}
+# 2. ฟังก์ชัน BREADTH-FIRST-SEARCH
+def breadth_first_search(graph, start, goal):
+    # ใน Python เราจะเก็บ Node ในรูปแบบ Tuple: (state_ปัจจุบัน, path_เส้นทางที่ผ่านมา)
+    # node <- NODE(problem.INITIAL)
+    initial_node = (start, [start])
+    
+    # if problem.IS-GOAL(node.STATE) then return node
+    if start == goal:
+        return initial_node[1]
 
+    # frontier <- a FIFO queue, with node as an element
+    # ใช้ deque เพราะมีประสิทธิภาพสูงเวลาดึงข้อมูลจากด้านหน้า (popleft)
+    frontier = deque([initial_node])
+    
+    # reached <- {problem.INITIAL}
+    # ใช้ Set ในการเก็บเมืองที่เคยเจาะไปแล้ว (ป้องกันการเดินวนลูป)
+    reached = {start}
+
+    # while not IS-EMPTY(frontier) do
     while frontier:
-        cost, state, path = heapq.heappop(frontier)
+        # node <- POP(frontier)
+        current_state, path = frontier.popleft()
 
-        # Skip if we already found a cheaper path
-        if state in visited_cost and visited_cost[state] <= cost:
-            continue
+        # for each child in EXPAND(problem, node) do
+        # ดึงเมืองที่เชื่อมต่อกัน (neighbor) จาก Dictionary
+        for neighbor in graph.get(current_state, {}):
+            # s <- child.STATE
+            s = neighbor
+            child_path = path + [s]
+            
+            # if problem.IS-GOAL(s) then return child
+            if s == goal:
+                return child_path
+            
+            # if s is not in reached then
+            if s not in reached:
+                # add s to reached
+                reached.add(s)
+                # add child to frontier
+                frontier.append((s, child_path))
+                
+    # return failure
+    return None
 
-        visited_cost[state] = cost
-        path = path + [state]
+# --- ส่วนทดสอบการทำงาน ---
+start_city = "Bangkok"
+goal_city = "ChiangMai"
+result = breadth_first_search(TH_ROADS, start_city, goal_city)
 
-        # Goal test when popping (as in UCS)
-        if state == goal:
-            return path, cost
-
-        # Expand neighbors
-        for neighbor, distance in graph.get(state, {}).items():
-            new_cost = cost + distance
-            heapq.heappush(frontier, (new_cost, neighbor, path))
-
-    return None, float("inf")
-
-
-# ----------------------------
-# Run UCS
-# ----------------------------
-start = "NakhonPathom"
-goal = "Ayutthaya"
-
-path, total_cost = uniform_cost_search(TH_ROADS, start, goal)
-
-if path:
-    print("Path:", " -> ".join(path))
-    print("Total distance:", total_cost, "km")
+if result:
+    print(f"🎯 เส้นทางที่สั้นที่สุด (จำนวนก้าวน้อยสุด) จาก {start_city} ไป {goal_city}:")
+    print(" -> ".join(result))
+    
+    # คำนวณระยะทางรวมจากเส้นทางที่ได้
+    total_cost = 0
+    for i in range(len(result) - 1):
+        city_a = result[i]
+        city_b = result[i+1]
+        total_cost += TH_ROADS[city_a][city_b]
+        
+    print(f"🛣️ ระยะทางรวม: {total_cost} กม.")
 else:
-    print("No path found")
+    print("❌ ไม่พบเส้นทางเชื่อมต่อ")
