@@ -1,0 +1,101 @@
+import random
+
+# -------------------------
+# ข้อมูลเริ่มต้น
+# -------------------------
+subjects = ["A", "B", "C", "D"]
+times = ["เช้า", "บ่าย", "เย็น"]
+rooms = [1, 2]
+
+POP_SIZE = 6
+GENERATIONS = 50
+MUTATION_RATE = 0.2
+
+# -------------------------
+# สร้าง chromosome (ตาราง)
+# -------------------------
+def create_individual():
+    schedule = []
+    for sub in subjects:
+        time = random.choice(times)
+        room = random.choice(rooms)
+        schedule.append((sub, time, room))
+    return schedule
+
+# -------------------------
+# ฟังก์ชัน fitness
+# -------------------------
+def fitness(individual):
+    score = 0
+    used = set()
+
+    for sub, time, room in individual:
+        key = (time, room)
+
+        if key in used:
+            score -= 10  # ห้องชน
+        else:
+            score += 5
+
+        used.add(key)
+
+    return score
+
+# -------------------------
+# Selection
+# -------------------------
+def selection(population):
+    population.sort(key=lambda x: fitness(x), reverse=True)
+    return population[:2]  # เลือก 2 ตัวที่ดีที่สุด
+
+# -------------------------
+# Crossover
+# -------------------------
+def crossover(parent1, parent2):
+    point = random.randint(1, len(parent1)-1)
+    child = parent1[:point] + parent2[point:]
+    return child
+
+# -------------------------
+# Mutation
+# -------------------------
+def mutate(individual):
+    if random.random() < MUTATION_RATE:
+        i = random.randint(0, len(individual)-1)
+        sub, _, _ = individual[i]
+        individual[i] = (
+            sub,
+            random.choice(times),
+            random.choice(rooms)
+        )
+    return individual
+
+# -------------------------
+# Evolution Process
+# -------------------------
+population = [create_individual() for _ in range(POP_SIZE)]
+
+for gen in range(GENERATIONS):
+    # เลือกพ่อแม่
+    parents = selection(population)
+
+    new_population = parents.copy()
+
+    # สร้างลูก
+    while len(new_population) < POP_SIZE:
+        child = crossover(parents[0], parents[1])
+        child = mutate(child)
+        new_population.append(child)
+
+    population = new_population
+
+# -------------------------
+# แสดงผลลัพธ์ดีที่สุด
+# -------------------------
+best = max(population, key=lambda x: fitness(x))
+
+print("📅 ตารางที่ดีที่สุด:")
+for sub, time, room in best:
+    print(f"วิชา {sub} เวลา {time} ห้อง {room}")
+
+print("Fitness:", fitness(best))
